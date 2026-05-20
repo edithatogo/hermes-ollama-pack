@@ -29,6 +29,11 @@ WORK_ROOT="${HERMES_EXPORT_ROOT:-${HERMES_STORAGE_ROOT:-$REPO_DIR}/hermes-export
 WORK_DIR="$WORK_ROOT/ollama/$MODEL_NAME"
 MERGE_DIR="$WORK_DIR/merged"
 OLLAMA_DIR="$WORK_DIR/ollama-pkg"
+FUSE_ARGS=()
+if [ "${HERMES_FUSE_DEQUANTIZE:-0}" = "1" ]; then
+    MERGE_DIR="$WORK_DIR/merged-dequantized"
+    FUSE_ARGS+=(--dequantize)
+fi
 
 echo "=== Exporting to Ollama ==="
 echo "Adapter:   $ADAPTER"
@@ -47,26 +52,30 @@ if command -v mlx_lm.fuse >/dev/null 2>&1; then
         --model "$BASE_MODEL" \
         --adapter-path "$ADAPTER" \
         --save-path "$MERGE_DIR" \
+        "${FUSE_ARGS[@]}" \
         --export-gguf \
         --gguf-path "$GGUF_FILE"; then
         echo "  GGUF export failed; retrying fused safetensors export only."
         mlx_lm.fuse \
             --model "$BASE_MODEL" \
             --adapter-path "$ADAPTER" \
-            --save-path "$MERGE_DIR"
+            --save-path "$MERGE_DIR" \
+            "${FUSE_ARGS[@]}"
     fi
 elif "$PYTHON_BIN" -c "import mlx_lm.fuse" 2>/dev/null; then
     if ! "$PYTHON_BIN" -m mlx_lm.fuse \
         --model "$BASE_MODEL" \
         --adapter-path "$ADAPTER" \
         --save-path "$MERGE_DIR" \
+        "${FUSE_ARGS[@]}" \
         --export-gguf \
         --gguf-path "$GGUF_FILE"; then
         echo "  GGUF export failed; retrying fused safetensors export only."
         "$PYTHON_BIN" -m mlx_lm.fuse \
             --model "$BASE_MODEL" \
             --adapter-path "$ADAPTER" \
-            --save-path "$MERGE_DIR"
+            --save-path "$MERGE_DIR" \
+            "${FUSE_ARGS[@]}"
     fi
 else
     echo "  mlx_lm.fuse not found. Attempting Python import..."
@@ -103,7 +112,28 @@ elif [ -f "$MERGE_DIR/config.json" ]; then
     if ! "$PYTHON_BIN" "$LLAMA_CPP/convert_hf_to_gguf.py" "$MERGE_DIR" \
         --outfile "$GGUF_FILE" \
         --outtype f16; then
-        echo "  GGUF conversion failed; keeping fused safetensors package."
+        if [ "${HERMES_DEQUANTIZE_ON_GGUF_FAIL:-1}" = "1" ] && [ "${HERMES_FUSE_DEQUANTIZE:-0}" != "1" ]; then
+            echo "  GGUF conversion failed; retrying with a dequantized fused export."
+            DEQUANT_MERGE_DIR="$WORK_DIR/merged-dequantized"
+            if command -v mlx_lm.fuse >/dev/null 2>&1; then
+                mlx_lm.fuse \
+                    --model "$BASE_MODEL" \
+                    --adapter-path "$ADAPTER" \
+                    --save-path "$DEQUANT_MERGE_DIR" \
+                    --dequantize
+            else
+                "$PYTHON_BIN" -m mlx_lm.fuse \
+                    --model "$BASE_MODEL" \
+                    --adapter-path "$ADAPTER" \
+                    --save-path "$DEQUANT_MERGE_DIR" \
+                    --dequantize
+            fi
+            "$PYTHON_BIN" "$LLAMA_CPP/convert_hf_to_gguf.py" "$DEQUANT_MERGE_DIR" \
+                --outfile "$GGUF_FILE" \
+                --outtype f16
+        else
+            echo "  GGUF conversion failed; keeping fused safetensors package."
+        fi
     fi
 else
     echo "  No merged model found at $MERGE_DIR. Creating placeholder model info."
@@ -137,8 +167,9 @@ fi
 # Step 4: Quantize
 echo "Step 4: Quantizing..."
 Q4_FILE="$WORK_DIR/$MODEL_NAME-q4_k_m.gguf"
+QUANT_TYPE="${HERMES_QUANT_TYPE:-q4_K_M}"
 QUANTIZE_BIN=""
-for candidate in "$LLAMA_CPP/quantize" "$LLAMA_CPP/build/bin/llama-quantize" "$LLAMA_CPP/build/bin/quantize"; do
+for candidate in "$LLAMA_CPP/quantize" "$LLAMA_CPP/build/bin/llama-quantize" "$LLAMA_CPP/build/bin/quantize" "$(command -v llama-quantize || true)" "$(command -v quantize || true)"; do
     if [ -x "$candidate" ]; then
         QUANTIZE_BIN="$candidate"
         break
@@ -162,7 +193,7 @@ MODFILE
     fi
     exit 0
 elif [ -n "$QUANTIZE_BIN" ]; then
-    "$QUANTIZE_BIN" "$GGUF_FILE" "$Q4_FILE" q4_k_m
+    "$QUANTIZE_BIN" "$GGUF_FILE" "$Q4_FILE" "$QUANT_TYPE"
     MODEL_FILE="$Q4_FILE"
 else
     echo "  quantize binary not found, building llama.cpp..."
@@ -170,14 +201,14 @@ else
     make -j4 quantize 2>/dev/null || make -j4 2>/dev/null || true
     cd "$REPO_DIR"
     QUANTIZE_BIN=""
-    for candidate in "$LLAMA_CPP/quantize" "$LLAMA_CPP/build/bin/llama-quantize" "$LLAMA_CPP/build/bin/quantize"; do
+    for candidate in "$LLAMA_CPP/quantize" "$LLAMA_CPP/build/bin/llama-quantize" "$LLAMA_CPP/build/bin/quantize" "$(command -v llama-quantize || true)" "$(command -v quantize || true)"; do
         if [ -x "$candidate" ]; then
             QUANTIZE_BIN="$candidate"
             break
         fi
     done
     if [ -n "$QUANTIZE_BIN" ]; then
-        "$QUANTIZE_BIN" "$GGUF_FILE" "$Q4_FILE" q4_k_m
+        "$QUANTIZE_BIN" "$GGUF_FILE" "$Q4_FILE" "$QUANT_TYPE"
         MODEL_FILE="$Q4_FILE"
     else
         echo "  Using f16 (no quantization available)"
@@ -188,7 +219,30 @@ fi
 # Step 5: Package for Ollama
 echo "Step 5: Creating Ollama package..."
 cp "$MODEL_FILE" "$OLLAMA_DIR/model.gguf"
-cp "$REPO_DIR/modelfiles/Gemma4-Hermes.Modelfile" "$OLLAMA_DIR/Modelfile"
+MODELFILE_TEMPLATE="${HERMES_MODELFILE_TEMPLATE:-}"
+if [ -z "$MODELFILE_TEMPLATE" ]; then
+    case "$(printf '%s' "$BASE_MODEL $MODEL_NAME" | tr '[:upper:]' '[:lower:]')" in
+        *qwen*) MODELFILE_TEMPLATE="$REPO_DIR/modelfiles/Qwen3-Hermes.Modelfile" ;;
+        *lfm*|*liquid*) MODELFILE_TEMPLATE="$REPO_DIR/modelfiles/LFM-Hermes.Modelfile" ;;
+        *) MODELFILE_TEMPLATE="$REPO_DIR/modelfiles/Gemma4-Hermes.Modelfile" ;;
+    esac
+fi
+
+cp "$MODELFILE_TEMPLATE" "$OLLAMA_DIR/Modelfile"
+if grep -q "__MODEL_DIR__" "$OLLAMA_DIR/Modelfile"; then
+    sed -i.bak "s|__MODEL_DIR__|./model.gguf|g" "$OLLAMA_DIR/Modelfile"
+    rm -f "$OLLAMA_DIR/Modelfile.bak"
+else
+    "$PYTHON_BIN" - "$OLLAMA_DIR/Modelfile" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text()
+path.write_text(re.sub(r"^FROM .*$", "FROM ./model.gguf", text, count=1, flags=re.M))
+PY
+fi
 
 if [ "${HERMES_SKIP_OLLAMA_CREATE:-0}" = "1" ]; then
     echo "Skipping 'ollama create' because HERMES_SKIP_OLLAMA_CREATE=1."
