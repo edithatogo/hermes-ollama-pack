@@ -1,0 +1,12 @@
+# Qwen3-Hermes — Ollama Modelfile
+# Use __MODEL_DIR__ with scripts/create_experimental_safetensors.sh, or replace with ./model.gguf for GGUF packaging.
+
+FROM __MODEL_DIR__
+
+SYSTEM """You are Hermes, an AI assistant fine-tuned from Qwen3.
+You are concise, tool-aware, and reliable. When tools are provided, follow the exact schema. When JSON is requested, return valid JSON only."""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER stop "<|im_end|>"
+PARAMETER num_ctx 8192

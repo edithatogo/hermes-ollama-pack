@@ -1,18 +1,38 @@
 #!/bin/bash
 # Merge MLX LoRA adapter with base model, convert to GGUF, push to Ollama.
-# Usage: scripts/export_ollama.sh [adapter_dir] [model_name]
+# Usage: scripts/export_ollama.sh [adapter_dir] [model_name] [base_model]
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+HUB_DIR="$(cd "$REPO_DIR/.." && pwd)"
 ADAPTER="${1:-$REPO_DIR/experiments/gemma4-e4b/lora_adapter}"
 MODEL_NAME="${2:-gemma4-hermes}"
-WORK_DIR="$REPO_DIR/exports/ollama/$MODEL_NAME"
+BASE_MODEL="${3:-}"
+if [ -z "$BASE_MODEL" ] && [ -f "$ADAPTER/adapter_config.json" ]; then
+    BASE_MODEL="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("model", ""))' "$ADAPTER/adapter_config.json")"
+fi
+
+if [ -z "$BASE_MODEL" ]; then
+    echo "Base model is required when adapter_config.json does not contain a model field." >&2
+    exit 1
+fi
+
+if [ -f "$HUB_DIR/scripts/env.sh" ]; then
+    # Keep Hugging Face, temporary, and export caches on the external SSD.
+    # shellcheck disable=SC1091
+    source "$HUB_DIR/scripts/env.sh"
+fi
+
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+WORK_ROOT="${HERMES_EXPORT_ROOT:-${HERMES_STORAGE_ROOT:-$REPO_DIR}/hermes-exports}"
+WORK_DIR="$WORK_ROOT/ollama/$MODEL_NAME"
 MERGE_DIR="$WORK_DIR/merged"
 OLLAMA_DIR="$WORK_DIR/ollama-pkg"
 
 echo "=== Exporting to Ollama ==="
 echo "Adapter:   $ADAPTER"
+echo "Base:      $BASE_MODEL"
 echo "Model:     $MODEL_NAME"
 echo "Work dir:  $WORK_DIR"
 echo ""
@@ -21,17 +41,19 @@ mkdir -p "$MERGE_DIR" "$OLLAMA_DIR"
 
 # Step 1: Merge LoRA adapter using mlx_lm.fuse
 echo "Step 1: Merging LoRA adapter..."
-if command -v mlx_lm.fuse &>/dev/null; then
+if command -v mlx_lm.fuse >/dev/null 2>&1; then
     mlx_lm.fuse \
+        --model "$BASE_MODEL" \
         --adapter-path "$ADAPTER" \
         --save-path "$MERGE_DIR"
-elif python3 -c "import mlx_lm.fuse" 2>/dev/null; then
-    /usr/local/bin/python3 -m mlx_lm.fuse \
+elif "$PYTHON_BIN" -c "import mlx_lm.fuse" 2>/dev/null; then
+    "$PYTHON_BIN" -m mlx_lm.fuse \
+        --model "$BASE_MODEL" \
         --adapter-path "$ADAPTER" \
         --save-path "$MERGE_DIR"
 else
     echo "  mlx_lm.fuse not found. Attempting Python import..."
-    /usr/local/bin/python3 -c "
+    "$PYTHON_BIN" -c "
 import sys, json
 from pathlib import Path
 adapter = Path('$ADAPTER')
@@ -60,7 +82,7 @@ fi
 echo "Step 3: Converting to GGUF..."
 GGUF_FILE="$WORK_DIR/$MODEL_NAME-f16.gguf"
 if [ -f "$MERGE_DIR/config.json" ]; then
-    /usr/local/bin/python3 "$LLAMA_CPP/convert_hf_to_gguf.py" "$MERGE_DIR" \
+    "$PYTHON_BIN" "$LLAMA_CPP/convert_hf_to_gguf.py" "$MERGE_DIR" \
         --outfile "$GGUF_FILE" \
         --outtype f16
 else

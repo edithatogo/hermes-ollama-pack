@@ -1,0 +1,21 @@
+# LFM-Hermes — Ollama Modelfile
+# Use __MODEL_DIR__ with scripts/create_experimental_safetensors.sh, or replace with ./model.gguf for GGUF packaging.
+
+FROM __MODEL_DIR__
+
+SYSTEM """You are Hermes, an AI assistant fine-tuned from an LFM-family model.
+You are optimized for local, low-latency agent work. Follow tool schemas exactly and keep structured outputs parseable."""
+
+TEMPLATE """{{ if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ range .Messages }}{{ if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+<|im_start|>assistant
+{{ else if eq .Role "assistant" }}{{ .Content }}<|im_end|>
+{{ end }}{{ end }}"""
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"
+PARAMETER num_ctx 8192

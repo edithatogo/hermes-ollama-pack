@@ -1,50 +1,59 @@
-# Ollama Pack — Conductor Setup
+# Ollama Pack — Conductor Context
 
-This repo is Track 3 of the Hermes Training Hub.
+This repo is the runtime packaging and Hermes integration track for the Hermes Training Hub.
 
 ## Hub References
 
 | Document | Location |
-|----------|----------|
+|---|---|
 | Hub conductor | `/Users/doughnut/GitHub/hermes-training/CONDUCTOR.md` |
-| MoSCoW requirements | `/Users/doughnut/GitHub/hermes-training/REQUIREMENTS.md` |
-| Architecture design | `/Users/doughnut/GitHub/hermes-training/DESIGN.md` |
-| Interface contracts | `/Users/doughnut/GitHub/hermes-training/CONTRACTS.md` |
+| Runtime targets | `/Users/doughnut/GitHub/hermes-training/RUNTIME_TARGETS.md` |
+| Benchmark plan | `/Users/doughnut/GitHub/hermes-training/BENCHMARKING_PLAN.md` |
+| Documentation plan | `/Users/doughnut/GitHub/hermes-training/DOCUMENTATION_PLAN.md` |
+| Applications | `/Users/doughnut/GitHub/hermes-training/APPLICATIONS.md` |
 
 ## Track Status
 
 | Requirement | Status |
-|-------------|--------|
-| M5 Export to Ollama | ✅ scripts/export_ollama.sh written |
-| M8 llama.cpp ready | ✅ Built at `/Users/doughnut/GitHub/llama.cpp` |
-| S7 GGUF conversion | ✅ llama-quantize compiled with Metal |
+|---|---|
+| Ollama Modelfiles | Present for Gemma, LFM, Qwen |
+| Runtime smoke script | Present; validates parseable JSON from `/v1/models` and `/v1/chat/completions` |
+| Experimental safetensors path | Present |
+| GGUF path | Documented; validate per model/license |
+| Hermes launch target | Ollama OpenAI-compatible endpoint |
+| SSD artifact policy | Keep GGUFs, merged models, and exports off Git |
+| Specialist runtime lane | Documented in runtime targets; needs a lane-specific launcher and run card before promotion |
 
 ## Available Modelfiles
 
 | Modelfile | Target Model | Status |
-|-----------|-------------|--------|
-| `modelfiles/Gemma4-Hermes.Modelfile` | Gemma 4 E4B-it Hermes | Ready (awaiting adapter) |
-| `modelfiles/LFM2-Hermes.Modelfile` | LFM2-8B-A1B Hermes | Ready (awaiting adapter) |
+|---|---|---|
+| `modelfiles/Gemma4-Hermes.Modelfile` | Gemma-family Hermes runtime | Ready for runtime proof |
+| `modelfiles/LFM-Hermes.Modelfile` | LFM/LFM2.5 runtime | Ready for runtime proof |
+| `modelfiles/Qwen3-Hermes.Modelfile` | Qwen3 runtime | Ready for runtime proof |
+
+## Next Actions
+
+1. Validate the LFM2.5 smoke adapter through MLX generation first.
+2. Package only benchmark-promoted adapters for Ollama or LM Studio.
+3. Keep model artifacts in SSD-backed export paths, not Git.
+4. Run `scripts/runtime_smoke.sh` before marking a runtime path usable by Hermes.
+5. Document the exact runtime endpoint and command in the model/run card.
+6. For specialist runtimes, capture the launcher, endpoint, and lane explicitly instead of assuming Ollama defaults.
 
 ## Contracts in Effect
 
-- CONTRACT-006: `modelfiles/*.Modelfile` (Ollama Modelfile format)
-- CONTRACT-010: `scripts/export_ollama.sh` (exit codes)
+- `modelfiles/*.Modelfile`: Ollama model definitions.
+- `scripts/export_ollama.sh`: merge/convert/package flow.
+- `scripts/create_experimental_safetensors.sh`: experimental path where supported.
+- `scripts/runtime_smoke.sh`: runtime validation.
 
-## Dependencies
+## Application Notes
 
-This track is BLOCKED on Track 1 (gemma4) and Track 2 (lfm2) producing trained adapters.
-Once an adapter exists at `experiments/*/lora_adapter/`, run:
+This track enables:
 
-```bash
-bash scripts/export_ollama.sh /path/to/adapter model-name
-```
-
-## Context Preservation Notes
-
-- No training happens in this repo. It only contains packaging/deployment scripts.
-- llama.cpp is built at `/Users/doughnut/GitHub/llama.cpp/`
-  - `convert_hf_to_gguf.py` for HF → GGUF conversion
-  - `build/bin/llama-quantize` for Q4_K_M quantization
-- Ollama runs as a service and is available at `http://127.0.0.1:11434`
-- The export script handles: merge → convert → quantize → ollama create
+- `ollama launch hermes` with local adapters/models
+- LM Studio fallback for GGUF-compatible releases
+- MLX server fallback for Apple Silicon-native serving
+- local OpenAI-compatible endpoints for coding agents and desktop assistants
+- side-by-side runtime benchmarks across Ollama, LM Studio, and MLX
