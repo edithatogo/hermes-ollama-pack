@@ -49,7 +49,7 @@ if isinstance(payload, dict):
     for field in ("id", "name", "model"):
         add_candidate(payload.get(field))
 
-if needle not in matches:
+if needle not in matches and f"{needle}:latest" not in matches:
     print(f"Model {needle} was not visible in the /models response.", file=sys.stderr)
     sys.exit(1)
 PY

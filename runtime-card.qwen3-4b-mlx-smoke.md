@@ -24,7 +24,7 @@
 | Runtime | Start Command | Base Endpoint | Smoke Prompt | Expected Result | Result |
 |---|---|---|---|---|---|
 | MLX server | `python -m mlx_lm.server --model Qwen/Qwen3-4B-MLX-4bit --adapter-path gemma4/experiments/qwen3-4b-smoke/lora_adapter --host 127.0.0.1 --port 8088` | `http://127.0.0.1:8088/v1` | `/no_think Return exactly this JSON object and nothing else: {"ok": true}` | `/v1/models` and `/v1/chat/completions` respond and the JSON reply is parseable. | Passed |
-| Ollama | pending GGUF export | `http://127.0.0.1:11434/v1` | Return JSON with key `ok` set to true. | Hermes sees the model and endpoint responds. | Not run: MLX adapter is not a GGUF artifact |
+| Ollama experimental safetensors | `OLLAMA_MODELS=/Volumes/PortableSSD/ollama-models ollama create qwen3-4b-hermes-smoke --experimental -f /Volumes/PortableSSD/hermes-exports/ollama/qwen3-4b-hermes-smoke/ollama-pkg/Modelfile` | `http://127.0.0.1:11434/v1` | `/no_think Return exactly this JSON object and nothing else: {"ok": true}` | Hermes sees the model and endpoint responds. | Failed: model imported, but `/v1/chat/completions` returned HTTP 500 from the Ollama MLX runner |
 | LM Studio | pending GGUF export | `http://localhost:1234/v1` | Return JSON with key `ok` set to true. | OpenAI-compatible chat completions respond. | Not run: MLX adapter is not a GGUF artifact |
 | Specialist runtime | pending lane-specific launcher | pending | Return JSON with key `ok` set to true. | Runtime exposes parseable `/v1/models` and chat completion. | Not run |
 
@@ -34,8 +34,8 @@
 - Smoke command: `BASE_URL=http://127.0.0.1:8088/v1 SMOKE_PROMPT='/no_think Return exactly this JSON object and nothing else: {"ok": true}' ollama-pack/scripts/runtime_smoke.sh Qwen/Qwen3-4B-MLX-4bit`
 - Latency: endpoint smoke completed successfully; detailed latency is not yet captured by `runtime_smoke.sh`
 - Peak memory: Qwen3 smoke training peaked at 3.944 GB; runtime peak was not separately sampled
-- Limitation(s): Qwen3 thinking mode can return reasoning without `content` unless prompted with `/no_think`
-- Notes: The MLX server warns it is not recommended for production. Use it as a local Hermes-compatible development endpoint, not a hardened serving layer.
+- Limitation(s): Qwen3 thinking mode can return reasoning without `content` unless prompted with `/no_think`. Ollama experimental safetensors import succeeded, but chat completion failed with an MLX runner panic, so Ollama is not a validated Qwen3 runtime for this package yet.
+- Notes: The MLX server warns it is not recommended for production. Use it as a local Hermes-compatible development endpoint, not a hardened serving layer. Keep Ollama as a packaging target only after a GGUF converter/runtime path is proven stable for Qwen3.
 - Specialist runtime notes: KTransformers/other specialist lanes remain separate because this proof uses an MLX adapter.
 
 ## SSD Artifact Policy
@@ -52,4 +52,5 @@
 - [x] Record runtime limitations or compatibility notes
 - [x] Record the platform lane and specialist-runtime distinction
 - [ ] Add timing capture to `runtime_smoke.sh`
-- [ ] Export/promote GGUF only after a publishable adapter exists
+- [x] Attempt Ollama experimental safetensors import
+- [ ] Export/promote GGUF only after a publishable adapter and stable Qwen3 converter path exist
