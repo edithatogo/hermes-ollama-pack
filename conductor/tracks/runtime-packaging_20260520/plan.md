@@ -26,5 +26,5 @@
 
 - Current readiness result: hub readiness validation passes in the shared repo venv; `mlx_lm` and `datasets` import successfully there.
 - Current health estimate: 9.6 / 10.
-- Evidence: Qwen3 4B MLX adapter loaded through `mlx_lm.server`; `/v1/models` and `/v1/chat/completions` passed through `scripts/runtime_smoke.sh`; runtime card recorded at `runtime-card.qwen3-4b-mlx-smoke.md`.
-- Gaps: Ollama/LM Studio remain pending until a GGUF export exists; specialist runtimes remain lane-specific follow-up work.
+- Evidence: Qwen3 4B MLX adapter loaded through `mlx_lm.server`; `/v1/models` and `/v1/chat/completions` passed through `scripts/runtime_smoke.sh`; LM Studio validation helper now exists at `scripts/runtime_smoke_lmstudio.sh`; runtime card recorded at `runtime-card.qwen3-4b-mlx-smoke.md`.
+- Gaps: LM Studio endpoint validation still needs to be executed against the SSD-backed Qwen3 GGUF; specialist runtimes remain lane-specific follow-up work.

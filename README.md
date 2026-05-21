@@ -61,13 +61,21 @@ Use this when:
 
 ## LM Studio Fallback
 
-When GGUF is the practical desktop fallback, start the LM Studio server and use its OpenAI-compatible endpoint:
+When GGUF is the practical desktop fallback, start the LM Studio server with the SSD-backed artifact and use its OpenAI-compatible endpoint:
 
 ```bash
 lms server start --port 1234
 ```
 
-Hermes can target `http://localhost:1234/v1` when LM Studio is the active runtime.
+For the Qwen3 smoke artifact recorded in this track, use:
+
+```bash
+GGUF_PATH=/Volumes/PortableSSD/hermes-exports/ollama/qwen3-4b-hermes-smoke/qwen3-4b-hermes-smoke-q4_K_M.gguf
+lms load "$GGUF_PATH" --identifier qwen3-4b-hermes-smoke-q4_K_M
+lms server start --port 1234
+```
+
+Hermes can target `http://localhost:1234/v1` when LM Studio is the active runtime, and `scripts/runtime_smoke_lmstudio.sh` can validate the endpoint against the same SSD-backed GGUF file.
 
 ## Runtime Smoke Test
 
@@ -78,13 +86,22 @@ bash scripts/runtime_smoke.sh gemma4-hermes
 The test checks `/v1/models` and `/v1/chat/completions` with JSON parsing, which is the surface Hermes needs.
 Override `BASE_URL` for MLX (`http://127.0.0.1:8080/v1`) or LM Studio (`http://localhost:1234/v1`) when the runtime is not Ollama.
 
+For LM Studio smoke validation with the Qwen3 GGUF artifact:
+
+```bash
+bash scripts/runtime_smoke_lmstudio.sh \
+  /Volumes/PortableSSD/hermes-exports/ollama/qwen3-4b-hermes-smoke/qwen3-4b-hermes-smoke-q4_K_M.gguf \
+  http://localhost:1234/v1 \
+  qwen3-4b-hermes-smoke-q4_K_M
+```
+
 ## Endpoint Smoke Matrix
 
 | Runtime | Start Command | Endpoint | Smoke Check |
 |---|---|---|---|
 | Ollama | `ollama launch hermes` | `http://127.0.0.1:11434/v1` | Hermes picker sees the model and `/v1/models` responds |
 | MLX server | `mlx_lm.server --model <path_to_model_or_hf_repo>` | `http://127.0.0.1:8080/v1` | `/v1/models` and `/v1/chat/completions` respond |
-| LM Studio | `lms server start --port 1234` | `http://localhost:1234/v1` | OpenAI-compatible chat completion responds |
+| LM Studio | `lms load /Volumes/PortableSSD/hermes-exports/ollama/qwen3-4b-hermes-smoke/qwen3-4b-hermes-smoke-q4_K_M.gguf --identifier qwen3-4b-hermes-smoke-q4_K_M && lms server start --port 1234` | `http://localhost:1234/v1` | OpenAI-compatible chat completion responds against the SSD-backed GGUF artifact |
 | Specialist runtime | `<runtime-specific launcher>` | `<OpenAI-compatible endpoint>` | Use the same JSON parsing checks, then record the launcher and lane in the run card |
 
 ## SSD Artifact Policy
