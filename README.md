@@ -86,6 +86,15 @@ bash scripts/runtime_smoke.sh gemma4-hermes
 The test checks `/v1/models` and `/v1/chat/completions` with JSON parsing, which is the surface Hermes needs.
 Override `BASE_URL` for MLX (`http://127.0.0.1:8080/v1`) or LM Studio (`http://localhost:1234/v1`) when the runtime is not Ollama.
 
+Qwen-style runtimes can emit an empty leading thinking wrapper before the JSON body. The smoke scripts normalize only empty leading `<think></think>` wrappers with `scripts/normalize_runtime_json.py` before strict JSON parsing. Non-empty thinking text, prose prefixes, and malformed JSON still fail the smoke gate.
+
+Validate the normalization helper without a live runtime:
+
+```bash
+python3 scripts/normalize_runtime_json.py --self-test
+printf '<think></think>{"ok": true}\n' | python3 scripts/normalize_runtime_json.py
+```
+
 For LM Studio smoke validation with the Qwen3 GGUF artifact:
 
 ```bash

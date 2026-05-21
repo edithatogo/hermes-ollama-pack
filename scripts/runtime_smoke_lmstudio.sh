@@ -84,40 +84,7 @@ PY
 }
 
 validate_chat_response() {
-    python3 - "$CHAT_RESPONSE" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-
-with open(path, "r", encoding="utf-8") as fh:
-    try:
-        payload = json.load(fh)
-    except json.JSONDecodeError as exc:
-        print(f"Chat completion response was not valid JSON: {exc}", file=sys.stderr)
-        sys.exit(1)
-
-choices = payload.get("choices")
-if not isinstance(choices, list) or not choices:
-    print("Chat completion did not include choices[].", file=sys.stderr)
-    sys.exit(1)
-
-message = choices[0].get("message", {})
-content = message.get("content")
-if not isinstance(content, str) or not content.strip():
-    print("Chat completion did not include assistant content.", file=sys.stderr)
-    sys.exit(1)
-
-try:
-    parsed = json.loads(content)
-except json.JSONDecodeError as exc:
-    print(f"Assistant response was not valid JSON: {exc}", file=sys.stderr)
-    sys.exit(1)
-
-if parsed.get("ok") is not True:
-    print("Assistant JSON did not include ok=true.", file=sys.stderr)
-    sys.exit(1)
-PY
+    python3 "$(dirname "$0")/normalize_runtime_json.py" --chat-response "$CHAT_RESPONSE"
 }
 
 echo "Validating GGUF artifact on SSD..."
