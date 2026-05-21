@@ -23,10 +23,10 @@ The local Ollama repo has a Hermes launcher that configures Hermes against `http
 Use MLX when the adapter or checkpoint is MLX-compatible and you want the Mac-first fallback:
 
 ```bash
-mlx_lm.server --model <path_to_model_or_hf_repo>
+mlx_lm.server --model <path_to_model_or_hf_repo> --port <port>
 ```
 
-The default server binds on `http://127.0.0.1:8080/v1`.
+The default examples commonly use `http://127.0.0.1:8080/v1`. The recorded Qwen3 smoke proof used `http://127.0.0.1:8088/v1`, so runtime cards should record the exact selected port.
 
 ## GGUF Path
 
