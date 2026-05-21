@@ -88,6 +88,15 @@ Override `BASE_URL` for MLX (`http://127.0.0.1:8080/v1`) or LM Studio (`http://l
 
 Qwen-style runtimes can emit an empty leading thinking wrapper before the JSON body. The smoke scripts normalize only empty leading `<think></think>` wrappers with `scripts/normalize_runtime_json.py` before strict JSON parsing. Non-empty thinking text, prose prefixes, and malformed JSON still fail the smoke gate.
 
+For already-installed local Ollama models, first confirm the model is visible without pulling anything:
+
+```bash
+ollama list
+curl -sS --max-time 3 http://127.0.0.1:11434/v1/models
+```
+
+The 2026-05-22 installed-model smoke passed for `hermes3:8b` and `sam860/LFM2:2.6b` through `http://127.0.0.1:11434/v1`; details are recorded in `runtime-card.local-ollama-installed-smoke.md` and `../reports/runtime/ollama-installed-models-smoke/run-card.md`.
+
 Validate the normalization helper without a live runtime:
 
 ```bash
