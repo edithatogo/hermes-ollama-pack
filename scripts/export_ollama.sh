@@ -98,7 +98,14 @@ if not list(merge_dir.glob('*')):
 fi
 
 # Step 2: Install llama.cpp if needed for conversion or quantization
-LLAMA_CPP="${HERMES_LLAMA_CPP:-${HERMES_STORAGE_ROOT:-$REPO_DIR}/hermes-tools/llama.cpp}"
+STORAGE_ROOT="${HERMES_STORAGE_ROOT:-$REPO_DIR}"
+if [ -n "${HERMES_LLAMA_CPP:-}" ]; then
+    LLAMA_CPP="$HERMES_LLAMA_CPP"
+elif [ -d "$STORAGE_ROOT/GitHub/llama.cpp-convert-tool" ]; then
+    LLAMA_CPP="$STORAGE_ROOT/GitHub/llama.cpp-convert-tool"
+else
+    LLAMA_CPP="$STORAGE_ROOT/hermes-tools/llama.cpp"
+fi
 if [ ! -f "$LLAMA_CPP/convert_hf_to_gguf.py" ]; then
     echo "Step 2: Cloning llama.cpp..."
     git clone --depth 1 https://github.com/ggerganov/llama.cpp.git "$LLAMA_CPP"
