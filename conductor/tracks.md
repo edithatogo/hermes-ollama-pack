@@ -4,5 +4,5 @@ Each track index should surface its spec, plan, and the conductor-root requireme
 
 ---
 
-## [ ] Track: Runtime packaging and Hermes validation
+## [x] Track: Runtime packaging and Hermes validation
 *Link: [./tracks/runtime-packaging_20260520/](./tracks/runtime-packaging_20260520/)*

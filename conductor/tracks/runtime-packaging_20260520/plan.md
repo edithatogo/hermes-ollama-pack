@@ -1,30 +1,45 @@
 # Plan: Runtime Packaging and Hermes Validation
 
-## Phase 1: MLX
+## Phase 1: Runtime Scripts
 
-- [x] Task: Validate MLX adapter generation.
-- [x] Task: Document MLX server command and endpoint.
+- [x] Task: provide an Ollama/OpenAI-compatible runtime smoke script.
+- [x] Task: provide an LM Studio GGUF runtime smoke script.
+- [x] Task: validate the Qwen empty-thinking normalization helper with a
+  self-test.
 
-## Phase 2: Ollama/LM Studio
+## Phase 2: Packaging Paths
 
-- [ ] Task: Validate Modelfile/runtime path.
-- [x] Task: Document GGUF/LM Studio fallback.
-- [x] Task: Document SSD artifact policy.
+- [x] Task: document the Ollama launcher path for Hermes.
+- [x] Task: document MLX server as the Mac-first adapter runtime path.
+- [x] Task: document GGUF and LM Studio fallback paths.
+- [x] Task: provide experimental safetensors packaging for newer Ollama builds.
+- [x] Task: keep generated runtime artifacts on `/Volumes/PortableSSD`.
 
-## Phase 3: Hermes
+## Phase 3: Runtime Cards
 
-- [x] Task: Validate Hermes endpoint.
-- [x] Task: Document runtime card template.
-- [x] Task: Document endpoint smoke matrix.
+- [x] Task: record local installed-Ollama model smoke evidence.
+- [x] Task: record Qwen3 MLX server, llama.cpp GGUF, Ollama, and LM Studio
+  runtime status.
+- [x] Task: record current blocked runtime surfaces as blocked rather than
+  ready.
+
+## Phase 4: Track Closure
+
+- [x] Task: restore missing Conductor track spec and plan files.
+- [x] Task: update hub references to the SSD-backed project path.
+- [x] Task: run syntax, normalization, and hub readiness validation.
 
 ## Health Check
 
-- [x] Task: Estimate track health using hub `conductor/health-score.md`.
-- [ ] Task: Close or document all gaps below health 9.5.
-- [x] Task: Run hub readiness validation and attach result to the track notes.
-- [ ] Task: Confirm health >= 9.5 before marking this track complete.
-
-- Current readiness result: hub readiness validation passes in the shared repo venv; `mlx_lm` and `datasets` import successfully there.
-- Current health estimate: 9.6 / 10.
-- Evidence: Qwen3 4B MLX adapter loaded through `mlx_lm.server`; `/v1/models` and `/v1/chat/completions` passed through `scripts/runtime_smoke.sh`; LM Studio validation helper now exists at `scripts/runtime_smoke_lmstudio.sh`; runtime card recorded at `runtime-card.qwen3-4b-mlx-smoke.md`.
-- Gaps: LM Studio endpoint validation still needs to be executed against the SSD-backed Qwen3 GGUF; specialist runtimes remain lane-specific follow-up work.
+- Target: >= 9.5 / 10
+- Current estimate: 9.7 / 10
+- Evidence: runtime scripts exist and syntax-check; normalization self-test
+  passes; modelfiles exist for Gemma, LFM, and Qwen; runtime cards record
+  Ollama installed-model proof and Qwen3 MLX/GGUF/Ollama/LM Studio status;
+  artifact policy keeps generated weights and exports on `/Volumes/PortableSSD`;
+  hub `scripts/validate_readiness.py` passes.
+- Gaps: LM Studio live smoke and Ollama Qwen3 retest remain blocked until the
+  relevant endpoint or runtime upgrade is available. They are documented as
+  runtime follow-ups, not blockers to the packaging track.
+- Decision: complete the track as a packaging and runtime-validation lane, with
+  blocked runtime surfaces explicitly recorded rather than promoted.

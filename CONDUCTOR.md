@@ -6,11 +6,11 @@ This repo is the runtime packaging and Hermes integration track for the Hermes T
 
 | Document | Location |
 |---|---|
-| Hub conductor | `/Users/doughnut/GitHub/hermes-training/CONDUCTOR.md` |
-| Runtime targets | `/Users/doughnut/GitHub/hermes-training/RUNTIME_TARGETS.md` |
-| Benchmark plan | `/Users/doughnut/GitHub/hermes-training/BENCHMARKING_PLAN.md` |
-| Documentation plan | `/Users/doughnut/GitHub/hermes-training/DOCUMENTATION_PLAN.md` |
-| Applications | `/Users/doughnut/GitHub/hermes-training/APPLICATIONS.md` |
+| Hub conductor | `/Volumes/PortableSSD/GitHub/hermes-training/CONDUCTOR.md` |
+| Runtime targets | `/Volumes/PortableSSD/GitHub/hermes-training/RUNTIME_TARGETS.md` |
+| Benchmark plan | `/Volumes/PortableSSD/GitHub/hermes-training/BENCHMARKING_PLAN.md` |
+| Documentation plan | `/Volumes/PortableSSD/GitHub/hermes-training/DOCUMENTATION_PLAN.md` |
+| Applications | `/Volumes/PortableSSD/GitHub/hermes-training/APPLICATIONS.md` |
 
 ## Track Status
 

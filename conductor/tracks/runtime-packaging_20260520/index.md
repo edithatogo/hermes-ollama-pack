@@ -1,8 +1,9 @@
 # Track runtime-packaging_20260520 Context
 
 - [Specification](./spec.md)
-- [Implementation Plan](./plan.md)
-- [Requirements](../../requirements.md)
-- [Design](../../design.md)
-- [Contracts](../../contracts.md)
-- [Metadata](./metadata.json)
+- [Plan](./plan.md)
+- [Ollama Pack requirements](../../requirements.md)
+- [Ollama Pack design](../../design.md)
+- [Ollama Pack contracts](../../contracts.md)
+- [Hub requirements](../../../conductor/requirements.md)
+- [Hub contracts](../../../conductor/contracts.md)
